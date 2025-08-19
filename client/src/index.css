@@ -1,0 +1,165 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(222 84% 4.9%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(222 84% 4.9%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(222 84% 4.9%);
+  --primary: hsl(218 84% 57%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(210 14% 45%);
+  --secondary-foreground: hsl(0 0% 100%);
+  --muted: hsl(210 10% 90%);
+  --muted-foreground: hsl(215 16% 47%);
+  --accent: hsl(210 40% 96%);
+  --accent-foreground: hsl(218 84% 57%);
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(214 32% 91%);
+  --input: hsl(214 32% 91%);
+  --ring: hsl(218 84% 57%);
+  --chart-1: hsl(218 84% 57%);
+  --chart-2: hsl(142 71% 45%);
+  --chart-3: hsl(43 89% 59%);
+  --chart-4: hsl(27 96% 61%);
+  --chart-5: hsl(340 75% 55%);
+  --success: hsl(142 71% 45%);
+  --warning: hsl(43 89% 59%);
+  --error: hsl(0 84% 60%);
+  --radius: 0.75rem;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.dark {
+  --background: hsl(222 84% 4.9%);
+  --foreground: hsl(210 40% 98%);
+  --card: hsl(222 84% 4.9%);
+  --card-foreground: hsl(210 40% 98%);
+  --popover: hsl(222 84% 4.9%);
+  --popover-foreground: hsl(210 40% 98%);
+  --primary: hsl(218 84% 57%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(217 33% 17%);
+  --secondary-foreground: hsl(210 40% 98%);
+  --muted: hsl(217 33% 17%);
+  --muted-foreground: hsl(215 20% 65%);
+  --accent: hsl(217 33% 17%);
+  --accent-foreground: hsl(210 40% 98%);
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(217 33% 17%);
+  --input: hsl(217 33% 17%);
+  --ring: hsl(218 84% 57%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1 {
+    @apply text-2xl font-bold;
+  }
+
+  h2 {
+    @apply text-xl font-semibold;
+  }
+
+  h3 {
+    @apply text-lg font-medium;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-lg font-medium transition-colors;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90 px-4 py-2 rounded-lg font-medium transition-colors;
+  }
+
+  .card {
+    @apply bg-card text-card-foreground rounded-xl shadow-sm border border-border;
+  }
+
+  .status-available {
+    @apply bg-green-100 text-green-800;
+  }
+
+  .status-in-use {
+    @apply bg-red-100 text-red-800;
+  }
+
+  .status-completed {
+    @apply bg-green-100 text-green-800;
+  }
+
+  .status-in-progress {
+    @apply bg-blue-100 text-blue-800;
+  }
+
+  .photo-slot {
+    @apply border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer;
+  }
+
+  .photo-slot.captured {
+    @apply border-solid border-green-500 bg-green-50;
+  }
+
+  .progress-bar {
+    @apply w-full bg-gray-200 rounded-full h-2;
+  }
+
+  .progress-fill {
+    @apply bg-primary h-2 rounded-full transition-all duration-300;
+  }
+}
+
+@layer utilities {
+  .text-success {
+    color: var(--success);
+  }
+
+  .text-warning {
+    color: var(--warning);
+  }
+
+  .text-error {
+    color: var(--error);
+  }
+
+  .bg-success {
+    background-color: var(--success);
+  }
+
+  .bg-warning {
+    background-color: var(--warning);
+  }
+
+  .bg-error {
+    background-color: var(--error);
+  }
+
+  .border-success {
+    border-color: var(--success);
+  }
+
+  .border-warning {
+    border-color: var(--warning);
+  }
+
+  .border-error {
+    border-color: var(--error);
+  }
+}
