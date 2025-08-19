@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -52,20 +52,22 @@ export default function VehicleEditModal({
   const form = useForm<VehicleEditForm>({
     resolver: zodResolver(vehicleEditSchema),
     defaultValues: {
-      model: vehicle?.model || "",
-      plateNumber: vehicle?.plateNumber || "",
-      currentMileage: vehicle?.currentMileage || 0,
+      model: "",
+      plateNumber: "",
+      currentMileage: 0,
     },
   });
 
-  // Reset form when vehicle changes
-  if (vehicle && form.getValues().model !== vehicle.model) {
-    form.reset({
-      model: vehicle.model,
-      plateNumber: vehicle.plateNumber,
-      currentMileage: vehicle.currentMileage,
-    });
-  }
+  // Reset form when vehicle changes using useEffect
+  useEffect(() => {
+    if (vehicle) {
+      form.reset({
+        model: vehicle.model,
+        plateNumber: vehicle.plateNumber,
+        currentMileage: vehicle.currentMileage,
+      });
+    }
+  }, [vehicle, form]);
 
   const updateVehicleMutation = useMutation({
     mutationFn: async (data: VehicleEditForm): Promise<Vehicle> => {
@@ -86,8 +88,15 @@ export default function VehicleEditModal({
       return response.json();
     },
     onSuccess: (updatedVehicle) => {
+      // Invalidate all vehicle-related queries
       queryClient.invalidateQueries({ queryKey: ["/api/vehicles"] });
       queryClient.invalidateQueries({ queryKey: ["/api/vehicles", vehicle?.id] });
+      
+      // Also manually update the cache for immediate UI refresh
+      queryClient.setQueryData(["/api/vehicles"], (oldData: Vehicle[] | undefined) => {
+        if (!oldData) return oldData;
+        return oldData.map(v => v.id === updatedVehicle.id ? updatedVehicle : v);
+      });
       
       toast({
         title: "차량 정보 수정 완료",
