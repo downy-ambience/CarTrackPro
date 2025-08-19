@@ -75,7 +75,9 @@ export const updateDriveRecordSchema = createInsertSchema(driveRecords).omit({
   vehicleId: true, 
   driverId: true, 
   startTime: true 
-}).partial();
+}).partial().extend({
+  endTime: z.string().transform((str) => new Date(str)).optional(),
+});
 
 export const updateMaintenanceRecordSchema = createInsertSchema(maintenanceRecords).omit({ 
   id: true,
