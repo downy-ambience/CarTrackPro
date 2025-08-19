@@ -146,7 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Vehicle photos routes
   app.get("/api/drive-records/:driveRecordId/photos", async (req, res) => {
     try {
-      const photos = await storage.getPhotosByDriveRecord(req.params.driveRecordId);
+      const photos = await storage.getVehiclePhotosByDriveRecord(req.params.driveRecordId);
       res.json(photos);
     } catch (error) {
       console.error("Error getting photos:", error);
@@ -249,6 +249,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error processing photo upload:", error);
       res.status(500).json({ error: "사진 업로드 처리에 실패했습니다" });
+    }
+  });
+
+  // Vehicle photos CRUD endpoints
+  app.post("/api/vehicle-photos", async (req, res) => {
+    try {
+      const validatedData = insertVehiclePhotoSchema.parse(req.body);
+      const photo = await storage.createVehiclePhoto(validatedData);
+      res.json(photo);
+    } catch (error) {
+      console.error("Error creating vehicle photo:", error);
+      res.status(500).json({ error: "차량 사진 저장에 실패했습니다" });
+    }
+  });
+
+  app.get("/api/drive-records/:id/photos", async (req, res) => {
+    try {
+      const photos = await storage.getVehiclePhotosByDriveRecord(req.params.id);
+      res.json(photos);
+    } catch (error) {
+      console.error("Error getting vehicle photos:", error);
+      res.status(500).json({ error: "차량 사진을 가져오는데 실패했습니다" });
     }
   });
 

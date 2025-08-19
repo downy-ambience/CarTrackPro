@@ -35,7 +35,7 @@ export interface IStorage {
   updateDriveRecord(id: string, updates: UpdateDriveRecord): Promise<DriveRecord | undefined>;
 
   // Vehicle Photos
-  getPhotosByDriveRecord(driveRecordId: string): Promise<VehiclePhoto[]>;
+  getVehiclePhotosByDriveRecord(driveRecordId: string): Promise<VehiclePhoto[]>;
   createVehiclePhoto(photo: InsertVehiclePhoto): Promise<VehiclePhoto>;
 
   // Maintenance Records
@@ -192,7 +192,7 @@ export class MemStorage implements IStorage {
   }
 
   // Vehicle Photos
-  async getPhotosByDriveRecord(driveRecordId: string): Promise<VehiclePhoto[]> {
+  async getVehiclePhotosByDriveRecord(driveRecordId: string): Promise<VehiclePhoto[]> {
     return Array.from(this.vehiclePhotos.values()).filter(photo => photo.driveRecordId === driveRecordId);
   }
 
