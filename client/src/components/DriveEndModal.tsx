@@ -23,7 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Camera, Check, AlertCircle, Loader2 } from "lucide-react";
+import { Camera, Check, AlertCircle, Loader2, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import type { UploadResult } from "@uppy/core";
@@ -235,20 +235,19 @@ export default function DriveEndModal({
   };
 
   const onCompleteSubmit = () => {
-    const allPhotosCompleted = REQUIRED_PHOTOS.every(photo => 
-      capturedPhotos[photo.type]
-    );
-
-    if (!allPhotosCompleted) {
-      toast({
-        title: "사진 촬영 미완료",
-        description: "모든 필수 사진을 촬영해야 운행을 종료할 수 있습니다.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     endDriveMutation.mutate(form.getValues());
+  };
+
+  const onForceComplete = () => {
+    if (window.confirm(
+      "⚠️ 경고: 사진을 모두 촬영하지 않고 운행을 종료하시겠습니까?\n\n" +
+      "사진 촬영 없이 운행을 종료할 경우, 향후 발생할 수 있는 차량 손상이나 사고에 대한 " +
+      "책임을 운전자가 져야 할 수 있습니다. 차량의 기존 상태를 증명할 수 없어 " +
+      "분쟁 시 불리할 수 있습니다.\n\n" +
+      "정말로 사진 없이 운행을 종료하시겠습니까?"
+    )) {
+      endDriveMutation.mutate(form.getValues());
+    }
   };
 
   const completedPhotosCount = Object.keys(capturedPhotos).length;
@@ -398,6 +397,18 @@ export default function DriveEndModal({
               })}
             </div>
 
+            {/* 사진 없이 종료하기 위한 경고 메시지 */}
+            {completedPhotosCount < totalPhotosCount && (
+              <Alert className="mt-4 border-amber-200 bg-amber-50">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                <AlertDescription className="text-amber-800">
+                  <strong>주의:</strong> 사진을 모두 촬영하지 않고 운행을 종료할 경우, 
+                  향후 차량 손상이나 사고 발생 시 책임 문제가 발생할 수 있습니다. 
+                  차량 상태 증명이 어려워 분쟁 시 불리할 수 있습니다.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="flex justify-between pt-4">
               <Button
                 type="button"
@@ -407,15 +418,29 @@ export default function DriveEndModal({
               >
                 이전: 주행거리
               </Button>
-              <Button
-                onClick={onCompleteSubmit}
-                disabled={completedPhotosCount < totalPhotosCount || endDriveMutation.isPending}
-              >
-                {endDriveMutation.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              
+              <div className="flex space-x-2">
+                {completedPhotosCount < totalPhotosCount && (
+                  <Button
+                    variant="destructive"
+                    onClick={onForceComplete}
+                    disabled={endDriveMutation.isPending}
+                  >
+                    <AlertTriangle className="mr-2 h-4 w-4" />
+                    사진 없이 종료
+                  </Button>
                 )}
-                운행 종료
-              </Button>
+                
+                <Button
+                  onClick={onCompleteSubmit}
+                  disabled={completedPhotosCount < totalPhotosCount || endDriveMutation.isPending}
+                >
+                  {endDriveMutation.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  운행 종료
+                </Button>
+              </div>
             </div>
           </div>
         )}
