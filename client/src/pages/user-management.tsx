@@ -11,6 +11,7 @@ import { insertUserSchema, type InsertUser, type User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit2, Users } from "lucide-react";
+import Navigation from "@/components/Navigation";
 
 export default function UserManagement() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -101,7 +102,10 @@ export default function UserManagement() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      
+      <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Users className="w-8 h-8" />
@@ -212,6 +216,7 @@ export default function UserManagement() {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   );
 }
