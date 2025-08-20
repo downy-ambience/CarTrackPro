@@ -15,9 +15,9 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50">
       <Navigation />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-20 md:pb-6">
         {/* Vehicle Selection */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <VehicleSelector 
             selectedVehicle={selectedVehicle}
             onVehicleSelect={setSelectedVehicle}
@@ -27,7 +27,7 @@ export default function Home() {
         {selectedVehicle && (
           <>
             {/* Drive Registration */}
-            <div className="mb-8">
+            <div className="mb-6 sm:mb-8">
               <DriveRegistrationForm
                 vehicle={selectedVehicle}
                 driveRecord={currentDriveRecord}
@@ -37,7 +37,7 @@ export default function Home() {
 
             {/* Photo Capture */}
             {currentDriveRecord && (
-              <div className="mb-8">
+              <div className="mb-6 sm:mb-8">
                 <PhotoCapture
                   driveRecord={currentDriveRecord}
                   capturedPhotos={capturedPhotos}
@@ -47,7 +47,7 @@ export default function Home() {
             )}
 
             {/* Maintenance Section */}
-            <div className="mb-8">
+            <div className="mb-6 sm:mb-8">
               <MaintenanceSection vehicle={selectedVehicle} />
             </div>
           </>

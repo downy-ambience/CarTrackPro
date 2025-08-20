@@ -105,11 +105,11 @@ export default function UserManagement() {
     <div className="min-h-screen bg-gray-50">
       <Navigation />
       
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-20 md:pb-6 space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Users className="w-8 h-8" />
-          <h1 className="text-3xl font-bold">운전자 관리</h1>
+          <Users className="w-6 h-6 sm:w-8 sm:h-8" />
+          <h1 className="text-2xl sm:text-3xl font-bold">운전자 관리</h1>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
