@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
+  insertUserSchema,
   insertDriveRecordSchema,
   updateDriveRecordSchema,
   insertVehiclePhotoSchema,
@@ -14,6 +15,57 @@ import { sendDriveRecordNotification, sendMaintenanceNotification } from "./slac
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const objectStorageService = new ObjectStorageService();
+
+  // User routes
+  app.get("/api/users", async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error getting users:", error);
+      res.status(500).json({ error: "사용자 목록을 가져오는데 실패했습니다" });
+    }
+  });
+
+  app.get("/api/users/current", async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      // Return first user as current user for now
+      if (users.length > 0) {
+        res.json(users[0]);
+      } else {
+        res.status(404).json({ error: "사용자가 없습니다" });
+      }
+    } catch (error) {
+      console.error("Error getting current user:", error);
+      res.status(500).json({ error: "현재 사용자 정보를 가져오는데 실패했습니다" });
+    }
+  });
+
+  app.post("/api/users", async (req, res) => {
+    try {
+      const validatedData = insertUserSchema.parse(req.body);
+      const user = await storage.createUser(validatedData);
+      res.json(user);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ error: "사용자 생성에 실패했습니다" });
+    }
+  });
+
+  app.patch("/api/users/:id", async (req, res) => {
+    try {
+      const validatedData = insertUserSchema.partial().parse(req.body);
+      const user = await storage.updateUser(req.params.id, validatedData);
+      if (!user) {
+        return res.status(404).json({ error: "사용자를 찾을 수 없습니다" });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: "사용자 정보 업데이트에 실패했습니다" });
+    }
+  });
 
   // Vehicle routes
   app.get("/api/vehicles", async (req, res) => {

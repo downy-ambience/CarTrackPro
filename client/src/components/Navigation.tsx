@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Car, Bell, User } from "lucide-react";
+import { Car, Bell, User, Users } from "lucide-react";
 
 export default function Navigation() {
   const [location] = useLocation();
@@ -22,6 +22,9 @@ export default function Navigation() {
             </Link>
             <Link href="/drive-history" className={`text-sm font-medium transition-colors ${location === "/drive-history" ? "text-primary" : "text-gray-700 hover:text-gray-900"}`}>
               운행 기록
+            </Link>
+            <Link href="/user-management" className={`text-sm font-medium transition-colors ${location === "/user-management" ? "text-primary" : "text-gray-700 hover:text-gray-900"}`}>
+              운전자 관리
             </Link>
           </div>
 

@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/home";
 import VehicleManagement from "@/pages/vehicle-management";
 import DriveHistory from "@/pages/drive-history";
+import UserManagement from "@/pages/user-management";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -14,6 +15,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/vehicle-management" component={VehicleManagement} />
       <Route path="/drive-history" component={DriveHistory} />
+      <Route path="/user-management" component={UserManagement} />
       <Route component={NotFound} />
     </Switch>
   );
