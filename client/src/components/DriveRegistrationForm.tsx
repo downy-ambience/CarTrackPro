@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Play, Pause, Slack, Save, Send } from "lucide-react";
+import { Play, Pause, Slack, Save, Send, User as UserIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import DriveEndModal from "@/components/DriveEndModal";
 import type { Vehicle, DriveRecord, User } from "@shared/schema";
 
 const driveFormSchema = z.object({
+  driverId: z.string().min(1, "운전자를 선택해주세요"),
   startMileage: z.number().min(0, "시작 주행거리를 입력해주세요"),
   purpose: z.string().min(1, "운행 목적을 선택해주세요"),
   destination: z.string().min(1, "목적지를 입력해주세요"),
@@ -39,13 +40,14 @@ export default function DriveRegistrationForm({
   const [step, setStep] = useState(1);
   const [isEndModalOpen, setIsEndModalOpen] = useState(false);
 
-  const { data: currentUser } = useQuery<User>({
-    queryKey: ["/api/users/current"],
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ["/api/users"],
   });
 
   const form = useForm<DriveFormData>({
     resolver: zodResolver(driveFormSchema),
     defaultValues: {
+      driverId: "",
       startMileage: vehicle.currentMileage,
       purpose: "",
       destination: "",
@@ -56,11 +58,9 @@ export default function DriveRegistrationForm({
 
   const createDriveRecordMutation = useMutation({
     mutationFn: async (data: DriveFormData) => {
-      if (!currentUser) throw new Error("사용자 정보를 찾을 수 없습니다");
-      
       const response = await apiRequest("POST", "/api/drive-records", {
         vehicleId: vehicle.id,
-        driverId: currentUser.id,
+        driverId: data.driverId,
         startMileage: data.startMileage,
         purpose: data.purpose,
         destination: data.destination,
@@ -94,7 +94,7 @@ export default function DriveRegistrationForm({
   const handleDriveComplete = () => {
     onDriveRecordUpdate(null);
     setStep(1);
-    form.reset({ startMileage: vehicle.currentMileage, purpose: "", destination: "" });
+    form.reset({ driverId: "", startMileage: vehicle.currentMileage, purpose: "", destination: "" });
     setIsEndModalOpen(false);
   };
 
@@ -121,6 +121,35 @@ export default function DriveRegistrationForm({
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Driver Selection */}
+          <FormField
+            control={form.control}
+            name="driverId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center">
+                  <UserIcon className="w-4 h-4 text-blue-500 mr-1" />
+                  운전자 선택
+                </FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!driveRecord}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="운전자를 선택하세요" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.name} (@{user.username})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           {/* Mileage Form */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
