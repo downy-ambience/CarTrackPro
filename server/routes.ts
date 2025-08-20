@@ -233,6 +233,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertMaintenanceRecordSchema.parse(req.body);
       const record = await storage.createMaintenanceRecord(validatedData);
       
+      // Update vehicle's last check date to the service date
+      await storage.updateVehicle(validatedData.vehicleId, {
+        lastCheckDate: validatedData.serviceDate || new Date()
+      });
+      
       // Send Slack notification for maintenance
       const vehicle = await storage.getVehicle(validatedData.vehicleId);
       if (vehicle) {
