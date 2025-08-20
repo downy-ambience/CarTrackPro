@@ -109,7 +109,7 @@ export default function UserManagement() {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Users className="w-6 h-6 sm:w-8 sm:h-8" />
-          <h1 className="text-2xl sm:text-3xl font-bold">운전자 관리</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">앰비언스 운전자 관리</h1>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

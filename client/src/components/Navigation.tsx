@@ -3,6 +3,7 @@ import { Car, Bell, User, Users } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { User as UserType } from "@shared/schema";
+import AmbienceLogo from "./AmbienceLogo";
 
 export default function Navigation() {
   const [location] = useLocation();
@@ -21,9 +22,9 @@ export default function Navigation() {
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-12 sm:h-16">
             <div className="flex items-center space-x-2">
-              <Car className="text-primary text-lg sm:text-2xl" />
-              <h1 className="text-sm sm:text-xl font-bold text-gray-900 hidden sm:block">차량 관리 시스템</h1>
-              <h1 className="text-sm font-bold text-gray-900 block sm:hidden">CarTrack</h1>
+              <AmbienceLogo className="w-6 h-6 sm:w-8 sm:h-8" />
+              <h1 className="text-sm sm:text-xl font-bold text-gray-900 hidden sm:block">앰비언스 차량관리 시스템</h1>
+              <h1 className="text-sm font-bold text-gray-900 block sm:hidden">앰비언스</h1>
             </div>
             
             <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
