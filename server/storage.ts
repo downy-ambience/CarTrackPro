@@ -73,23 +73,23 @@ export class MemStorage implements IStorage {
     };
     this.users.set(user.id, user);
 
-    // Create sample vehicles
+    // Create company vehicles (fixed data)
     const vehicle1: Vehicle = {
-      id: randomUUID(),
-      plateNumber: "12가 3456",
-      model: "현대 아반떼",
-      currentMileage: 45230,
+      id: "fixed-tucson-id",
+      plateNumber: "42너7839",
+      model: "현대 투싼",
+      currentMileage: 50000,
       status: "available",
-      lastCheckDate: new Date("2024-01-15"),
+      lastCheckDate: null,
     };
 
     const vehicle2: Vehicle = {
-      id: randomUUID(),
-      plateNumber: "56나 7890",
-      model: "기아 봉고",
-      currentMileage: 67890,
+      id: "fixed-starex-id",
+      plateNumber: "74라7664",
+      model: "현대 스타렉스",
+      currentMileage: 75000,
       status: "available",
-      lastCheckDate: new Date("2024-01-10"),
+      lastCheckDate: null,
     };
 
     this.vehicles.set(vehicle1.id, vehicle1);
