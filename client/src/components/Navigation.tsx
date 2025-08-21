@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Car, Bell, User, Users } from "lucide-react";
+import { Car, Bell, User, Users, FileSpreadsheet } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { User as UserType } from "@shared/schema";
@@ -39,6 +39,9 @@ export default function Navigation() {
               </Link>
               <Link href="/user-management" className={`text-xs lg:text-sm font-medium transition-colors ${location === "/user-management" ? "text-primary" : "text-gray-700 hover:text-gray-900"}`}>
                 운전자 관리
+              </Link>
+              <Link href="/google-sheets" className={`text-xs lg:text-sm font-medium transition-colors ${location === "/google-sheets" ? "text-primary" : "text-gray-700 hover:text-gray-900"}`}>
+                스프레드시트
               </Link>
             </div>
 
@@ -91,15 +94,10 @@ export default function Navigation() {
             <Users className="w-5 h-5 mb-1" />
             <span className="text-xs">운전자</span>
           </Link>
-          <button className="flex flex-col items-center py-1 px-2 text-gray-600 relative">
-            <Bell className="w-5 h-5 mb-1" />
-            <span className="text-xs">알림</span>
-            {notificationCount > 0 && (
-              <span className="absolute top-0 right-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
-                {notificationCount > 9 ? '9+' : notificationCount}
-              </span>
-            )}
-          </button>
+          <Link href="/google-sheets" className={`flex flex-col items-center py-1 px-2 ${location === "/google-sheets" ? "text-primary" : "text-gray-600"}`}>
+            <FileSpreadsheet className="w-5 h-5 mb-1" />
+            <span className="text-xs">시트</span>
+          </Link>
         </div>
       </div>
     </>

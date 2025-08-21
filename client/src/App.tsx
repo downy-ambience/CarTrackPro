@@ -7,6 +7,7 @@ import Home from "@/pages/home";
 import VehicleManagement from "@/pages/vehicle-management";
 import DriveHistory from "@/pages/drive-history";
 import UserManagement from "@/pages/user-management";
+import GoogleSheetsSetup from "@/pages/google-sheets-setup";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/vehicle-management" component={VehicleManagement} />
       <Route path="/drive-history" component={DriveHistory} />
       <Route path="/user-management" component={UserManagement} />
+      <Route path="/google-sheets" component={GoogleSheetsSetup} />
       <Route component={NotFound} />
     </Switch>
   );

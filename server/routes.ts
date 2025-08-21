@@ -14,6 +14,7 @@ import {
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import { sendDriveRecordNotification, sendMaintenanceNotification } from "./slack";
+import { googleSheetsService } from "./googleSheets";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const objectStorageService = new ObjectStorageService();
@@ -154,6 +155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (vehicle && driver) {
         await sendDriveRecordNotification(record, vehicle, driver);
+        await googleSheetsService.addDriveRecord(record, vehicle, driver);
         await storage.updateDriveRecord(record.id, { slackNotified: true });
       }
       
@@ -186,6 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (vehicle && driver && !record.slackNotified) {
           await sendDriveRecordNotification(record, vehicle, driver);
+          await googleSheetsService.addDriveRecord(record, vehicle, driver);
           await storage.updateDriveRecord(record.id, { slackNotified: true });
         }
       }
@@ -346,6 +349,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error getting current user:", error);
       res.status(500).json({ error: "사용자 정보를 가져오는데 실패했습니다" });
     }
+  });
+
+  // Google Sheets integration routes
+  app.post("/api/google-sheets/init", async (req, res) => {
+    try {
+      await googleSheetsService.initializeSpreadsheet();
+      res.json({ success: true, message: "스프레드시트 헤더가 초기화되었습니다" });
+    } catch (error) {
+      console.error("Error initializing Google Sheets:", error);
+      res.status(500).json({ error: "스프레드시트 초기화에 실패했습니다" });
+    }
+  });
+
+  app.get("/api/google-sheets/status", async (req, res) => {
+    const hasApiKey = !!process.env.GOOGLE_SHEETS_API_KEY;
+    const hasSpreadsheetId = !!process.env.GOOGLE_SPREADSHEET_ID;
+    
+    res.json({
+      configured: hasApiKey && hasSpreadsheetId,
+      hasApiKey,
+      hasSpreadsheetId,
+      instructions: googleSheetsService.getSetupInstructions()
+    });
   });
 
   const httpServer = createServer(app);
