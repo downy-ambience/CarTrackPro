@@ -330,16 +330,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/google-sheets/status", async (req, res) => {
-    const hasApiKey = !!process.env.GOOGLE_SHEETS_API_KEY;
-    const hasSpreadsheetId = !!process.env.GOOGLE_SPREADSHEET_ID;
+  // 스프레드시트 자동 생성
+  app.post("/api/google-sheets/create", async (req, res) => {
+    try {
+      if (!googleSheetsService.isEnabled()) {
+        return res.status(400).json({
+          error: "서비스 계정이 설정되지 않았습니다",
+          instructions: "GOOGLE_SERVICE_ACCOUNT_KEY_FILE 환경변수에 JSON 키 파일 경로를 설정하세요."
+        });
+      }
 
-    res.json({
-      configured: hasApiKey && hasSpreadsheetId,
-      hasApiKey,
-      hasSpreadsheetId,
-      instructions: googleSheetsService.getSetupInstructions()
-    });
+      const { ownerEmail } = req.body;
+      const result = await googleSheetsService.createSpreadsheet(ownerEmail);
+
+      res.json({
+        success: true,
+        spreadsheetId: result.spreadsheetId,
+        url: result.url,
+        message: `스프레드시트가 생성되었습니다${ownerEmail ? ` (${ownerEmail}에게 공유됨)` : ''}`
+      });
+    } catch (error: any) {
+      console.error("Error creating spreadsheet:", error);
+      res.status(500).json({ error: error.message || "스프레드시트 생성에 실패했습니다" });
+    }
+  });
+
+  app.get("/api/google-sheets/status", async (req, res) => {
+    const status = googleSheetsService.getStatus();
+    res.json(status);
   });
 
   const httpServer = createServer(app);

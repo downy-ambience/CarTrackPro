@@ -1,59 +1,62 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import Navigation from "@/components/Navigation";
+import { FileSpreadsheet, CheckCircle, AlertCircle, ExternalLink, Plus, RefreshCw, Mail } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FileSpreadsheet, CheckCircle, XCircle, Settings } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import Navigation from "@/components/Navigation";
 
-interface GoogleSheetsStatus {
-  configured: boolean;
-  hasApiKey: boolean;
-  hasSpreadsheetId: boolean;
-  instructions: string;
+interface SheetsStatus {
+  enabled: boolean;
+  hasSpreadsheet: boolean;
+  spreadsheetId: string | null;
+  spreadsheetUrl: string | null;
+  serviceAccountEmail: string | null;
 }
 
 export default function GoogleSheetsSetup() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [ownerEmail, setOwnerEmail] = useState("");
 
-  const { data: status, isLoading } = useQuery<GoogleSheetsStatus>({
+  const { data: status, isLoading } = useQuery<SheetsStatus>({
     queryKey: ["/api/google-sheets/status"],
   });
 
-  const initMutation = useMutation({
-    mutationFn: () => fetch("/api/google-sheets/init", {
-      method: "POST",
-    }).then(res => res.json()),
-    onSuccess: () => {
-      toast({
-        title: "스프레드시트 초기화 완료",
-        description: "구글 스프레드시트에 헤더가 설정되었습니다.",
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/google-sheets/create", {
+        ownerEmail: ownerEmail || undefined,
       });
+      return res.json();
+    },
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/google-sheets/status"] });
+      toast({
+        title: "✅ 스프레드시트 생성 완료!",
+        description: data.message,
+      });
     },
     onError: (error: any) => {
       toast({
-        title: "초기화 실패",
-        description: error.message || "스프레드시트 초기화에 실패했습니다.",
+        title: "오류",
+        description: error.message || "스프레드시트 생성에 실패했습니다",
         variant: "destructive",
       });
     },
   });
 
-  const StatusIndicator = ({ condition, label }: { condition: boolean; label: string }) => (
-    <div className="flex items-center space-x-2">
-      {condition ? (
-        <CheckCircle className="w-5 h-5 text-green-500" />
-      ) : (
-        <XCircle className="w-5 h-5 text-red-500" />
-      )}
-      <span className={condition ? "text-green-400" : "text-red-400"}>{label}</span>
-    </div>
-  );
+  const initMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/google-sheets/init");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "✅ 헤더 초기화 완료" });
+    },
+  });
 
   if (isLoading) {
     return (
@@ -82,139 +85,168 @@ export default function GoogleSheetsSetup() {
         </div>
 
         <div className="space-y-6">
-          {/* 상태 카드 */}
-          <Card>
+          {/* 연동 상태 */}
+          <Card className="glass-card-static animate-fade-in">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Settings className="w-5 h-5" />
-                <span>연동 상태</span>
+              <CardTitle className="text-lg text-slate-800 flex items-center gap-2">
+                {status?.enabled ? (
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-amber-500" />
+                )}
+                연동 상태
               </CardTitle>
-              <CardDescription>
-                구글 스프레드시트 연동을 위한 설정 상태입니다.
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">전체 연동 상태</span>
-                <Badge variant={status?.configured ? "default" : "secondary"}>
-                  {status?.configured ? "설정 완료" : "설정 필요"}
-                </Badge>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className={`p-4 rounded-lg ${status?.enabled ? 'stat-card-green' : 'stat-card-amber'}`}>
+                  <p className="text-xs font-medium text-slate-500 mb-1">서비스 계정</p>
+                  <p className={`text-sm font-semibold ${status?.enabled ? 'text-green-700' : 'text-amber-700'}`}>
+                    {status?.enabled ? '✅ 연결됨' : '❌ 미설정'}
+                  </p>
+                  {status?.serviceAccountEmail && (
+                    <p className="text-xs text-slate-400 mt-1 truncate">{status.serviceAccountEmail}</p>
+                  )}
+                </div>
+                <div className={`p-4 rounded-lg ${status?.hasSpreadsheet ? 'stat-card-blue' : 'stat-card-purple'}`}>
+                  <p className="text-xs font-medium text-slate-500 mb-1">스프레드시트</p>
+                  <p className={`text-sm font-semibold ${status?.hasSpreadsheet ? 'text-blue-700' : 'text-purple-700'}`}>
+                    {status?.hasSpreadsheet ? '✅ 연결됨' : '📄 미생성'}
+                  </p>
+                  {status?.spreadsheetUrl && (
+                    <a
+                      href={status.spreadsheetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-500 hover:text-blue-600 flex items-center gap-1 mt-1"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      스프레드시트 열기
+                    </a>
+                  )}
+                </div>
               </div>
+            </CardContent>
+          </Card>
 
-              <div className="space-y-3 pl-4 border-l-2 border-gray-100">
-                <StatusIndicator
-                  condition={status?.hasApiKey || false}
-                  label="Google Sheets API 키"
-                />
-                <StatusIndicator
-                  condition={status?.hasSpreadsheetId || false}
-                  label="스프레드시트 ID"
-                />
-              </div>
+          {/* 스프레드시트 생성 */}
+          {status?.enabled && !status?.hasSpreadsheet && (
+            <Card className="glass-card-static animate-fade-in-delay-1">
+              <CardHeader>
+                <CardTitle className="text-lg text-slate-800 flex items-center gap-2">
+                  <Plus className="w-5 h-5 text-blue-500" />
+                  스프레드시트 자동 생성
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-slate-500">
+                  서비스 계정이 연결되어 있습니다. 아래 버튼을 클릭하면 운행기록 스프레드시트가 자동으로 생성됩니다.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 items-end">
+                  <div className="flex-1 w-full">
+                    <label className="text-sm text-slate-500 mb-1 block">
+                      <Mail className="w-3.5 h-3.5 inline mr-1" />
+                      공유할 이메일 (선택사항)
+                    </label>
+                    <Input
+                      type="email"
+                      placeholder="your@email.com"
+                      value={ownerEmail}
+                      onChange={(e) => setOwnerEmail(e.target.value)}
+                    />
+                  </div>
+                  <button
+                    className="btn-gradient flex items-center gap-2 whitespace-nowrap"
+                    onClick={() => createMutation.mutate()}
+                    disabled={createMutation.isPending}
+                  >
+                    {createMutation.isPending ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Plus className="w-4 h-4" />
+                    )}
+                    {createMutation.isPending ? '생성 중...' : '스프레드시트 생성'}
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-              {status?.configured && (
-                <div className="pt-4">
+          {/* 이미 연결된 경우 */}
+          {status?.enabled && status?.hasSpreadsheet && (
+            <Card className="glass-card-static animate-fade-in-delay-1">
+              <CardHeader>
+                <CardTitle className="text-lg text-slate-800 flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  연동 완료
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-slate-500">
+                  스프레드시트가 성공적으로 연결되었습니다. 운행 기록이 완료될 때마다 자동으로 스프레드시트에 기록됩니다.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <a
+                    href={status.spreadsheetUrl!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-gradient flex items-center gap-2 text-center justify-center"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    스프레드시트 열기
+                  </a>
                   <Button
+                    variant="outline"
                     onClick={() => initMutation.mutate()}
                     disabled={initMutation.isPending}
-                    className="w-full"
                   >
-                    {initMutation.isPending ? "초기화 중..." : "스프레드시트 헤더 초기화"}
+                    <RefreshCw className={`w-4 h-4 mr-2 ${initMutation.isPending ? 'animate-spin' : ''}`} />
+                    헤더 재초기화
                   </Button>
-                  <p className="text-sm text-gray-500 mt-2">
-                    스프레드시트에 운행 기록 헤더를 설정합니다.
-                  </p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* 설정 안내 카드 */}
-          <Card>
-            <CardHeader>
-              <CardTitle>설정 방법</CardTitle>
-              <CardDescription>
-                구글 스프레드시트 연동을 위한 단계별 설정 가이드입니다.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="p-4 rounded-lg stat-card-blue">
-                  <h3 className="font-semibold text-blue-700 mb-2">1. Google Cloud Console 설정</h3>
-                  <ul className="text-sm text-blue-600 space-y-1">
-                    <li>• Google Cloud Console에서 프로젝트 생성</li>
-                    <li>• Google Sheets API 활성화</li>
-                    <li>• API 키 발급 (제한사항에서 Google Sheets API만 허용)</li>
-                  </ul>
+          {/* 설정 가이드 */}
+          {!status?.enabled && (
+            <Card className="glass-card-static animate-fade-in-delay-1">
+              <CardHeader>
+                <CardTitle className="text-lg text-slate-800">🔧 설정 가이드</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="p-4 rounded-lg stat-card-blue">
+                    <h3 className="font-semibold text-blue-700 mb-2">1. Google Cloud Console 설정</h3>
+                    <ul className="text-sm text-blue-600 space-y-1">
+                      <li>• <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a>에서 프로젝트 생성</li>
+                      <li>• Google Sheets API + Google Drive API 활성화</li>
+                      <li>• 서비스 계정 생성 → JSON 키 다운로드</li>
+                    </ul>
+                  </div>
+
+                  <div className="p-4 rounded-lg stat-card-green">
+                    <h3 className="font-semibold text-green-700 mb-2">2. JSON 키 파일 배치</h3>
+                    <ul className="text-sm text-green-600 space-y-1">
+                      <li>• 다운로드한 JSON 파일을 프로젝트 폴더에 저장</li>
+                      <li>• 예: <code className="bg-green-100 px-1 rounded">./credentials.json</code></li>
+                    </ul>
+                  </div>
+
+                  <div className="p-4 rounded-lg stat-card-purple">
+                    <h3 className="font-semibold text-purple-700 mb-2">3. 환경 변수 설정</h3>
+                    <ul className="text-sm text-purple-600 space-y-1">
+                      <li>• <code className="bg-purple-100 px-1 rounded">.env</code> 파일에 아래 내용 추가:</li>
+                      <li className="font-mono text-xs bg-purple-50 rounded p-2 mt-1">
+                        GOOGLE_SERVICE_ACCOUNT_KEY_FILE=./credentials.json
+                      </li>
+                      <li>• 서버 재시작 후 이 페이지에서 스프레드시트 자동 생성</li>
+                    </ul>
+                  </div>
                 </div>
-
-                <div className="p-4 rounded-lg stat-card-green">
-                  <h3 className="font-semibold text-green-700 mb-2">2. 스프레드시트 준비</h3>
-                  <ul className="text-sm text-green-600 space-y-1">
-                    <li>• 새 구글 스프레드시트 생성</li>
-                    <li>• 스프레드시트 URL에서 ID 복사</li>
-                    <li>• 스프레드시트를 공개로 설정 또는 API 권한 부여</li>
-                  </ul>
-                </div>
-
-                <div className="p-4 rounded-lg stat-card-purple">
-                  <h3 className="font-semibold text-purple-700 mb-2">3. 환경 변수 설정</h3>
-                  <ul className="text-sm text-purple-600 space-y-1">
-                    <li>• GOOGLE_SHEETS_API_KEY: 발급받은 API 키</li>
-                    <li>• GOOGLE_SPREADSHEET_ID: 스프레드시트 URL의 ID 부분</li>
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 스프레드시트 구조 안내 */}
-          <Card>
-            <CardHeader>
-              <CardTitle>스프레드시트 구조</CardTitle>
-              <CardDescription>
-                자동으로 생성될 운행 기록 스프레드시트의 구조입니다.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm border-collapse border border-gray-300">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="border border-gray-300 px-3 py-2 text-left">날짜</th>
-                      <th className="border border-gray-300 px-3 py-2 text-left">시작시간</th>
-                      <th className="border border-gray-300 px-3 py-2 text-left">종료시간</th>
-                      <th className="border border-gray-300 px-3 py-2 text-left">운전자</th>
-                      <th className="border border-gray-300 px-3 py-2 text-left">차량번호</th>
-                      <th className="border border-gray-300 px-3 py-2 text-left">차량모델</th>
-                      <th className="border border-gray-300 px-3 py-2 text-left">목적지</th>
-                      <th className="border border-gray-300 px-3 py-2 text-left">목적</th>
-                      <th className="border border-gray-300 px-3 py-2 text-left">시작주행거리</th>
-                      <th className="border border-gray-300 px-3 py-2 text-left">종료주행거리</th>
-                      <th className="border border-gray-300 px-3 py-2 text-left">총주행거리</th>
-                      <th className="border border-gray-300 px-3 py-2 text-left">상태</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="border border-gray-300 px-3 py-2 text-gray-500">2024.01.15</td>
-                      <td className="border border-gray-300 px-3 py-2 text-gray-500">09:30</td>
-                      <td className="border border-gray-300 px-3 py-2 text-gray-500">12:45</td>
-                      <td className="border border-gray-300 px-3 py-2 text-gray-500">김운전</td>
-                      <td className="border border-gray-300 px-3 py-2 text-gray-500">42너7839</td>
-                      <td className="border border-gray-300 px-3 py-2 text-gray-500">현대 투싼</td>
-                      <td className="border border-gray-300 px-3 py-2 text-gray-500">강남구청</td>
-                      <td className="border border-gray-300 px-3 py-2 text-gray-500">업무미팅</td>
-                      <td className="border border-gray-300 px-3 py-2 text-gray-500">45,200</td>
-                      <td className="border border-gray-300 px-3 py-2 text-gray-500">45,235</td>
-                      <td className="border border-gray-300 px-3 py-2 text-gray-500">35</td>
-                      <td className="border border-gray-300 px-3 py-2 text-gray-500">완료</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
