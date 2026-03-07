@@ -51,32 +51,32 @@ export default function GoogleSheetsSetup() {
       ) : (
         <XCircle className="w-5 h-5 text-red-500" />
       )}
-      <span className={condition ? "text-green-700" : "text-red-700"}>{label}</span>
+      <span className={condition ? "text-green-400" : "text-red-400"}>{label}</span>
     </div>
   );
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <Navigation />
-        <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-20 md:pb-6">
-          <div className="animate-pulse">로딩 중...</div>
+        <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 pb-24 md:pb-8">
+          <div className="animate-pulse text-slate-400">로딩 중...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Navigation />
-      
-      <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-20 md:pb-6">
-        <div className="mb-6 sm:mb-8">
-          <div className="flex items-center space-x-3 mb-4">
-            <FileSpreadsheet className="w-8 h-8 text-blue-600" />
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">구글 스프레드시트 연동</h1>
+
+      <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 pb-24 md:pb-8">
+        <div className="mb-6 sm:mb-8 animate-fade-in">
+          <div className="flex items-center space-x-3 mb-2">
+            <FileSpreadsheet className="w-7 h-7 text-blue-500" />
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">구글 스프레드시트 연동</h1>
           </div>
-          <p className="text-sm sm:text-base text-gray-600">
+          <p className="text-sm sm:text-base text-slate-400">
             운행 기록을 구글 스프레드시트로 자동 백업하고 관리하세요.
           </p>
         </div>
@@ -100,15 +100,15 @@ export default function GoogleSheetsSetup() {
                   {status?.configured ? "설정 완료" : "설정 필요"}
                 </Badge>
               </div>
-              
+
               <div className="space-y-3 pl-4 border-l-2 border-gray-100">
-                <StatusIndicator 
-                  condition={status?.hasApiKey || false} 
-                  label="Google Sheets API 키" 
+                <StatusIndicator
+                  condition={status?.hasApiKey || false}
+                  label="Google Sheets API 키"
                 />
-                <StatusIndicator 
-                  condition={status?.hasSpreadsheetId || false} 
-                  label="스프레드시트 ID" 
+                <StatusIndicator
+                  condition={status?.hasSpreadsheetId || false}
+                  label="스프레드시트 ID"
                 />
               </div>
 
@@ -139,27 +139,27 @@ export default function GoogleSheetsSetup() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <h3 className="font-semibold text-blue-900 mb-2">1. Google Cloud Console 설정</h3>
-                  <ul className="text-sm text-blue-800 space-y-1">
+                <div className="p-4 rounded-lg stat-card-blue">
+                  <h3 className="font-semibold text-blue-700 mb-2">1. Google Cloud Console 설정</h3>
+                  <ul className="text-sm text-blue-600 space-y-1">
                     <li>• Google Cloud Console에서 프로젝트 생성</li>
                     <li>• Google Sheets API 활성화</li>
                     <li>• API 키 발급 (제한사항에서 Google Sheets API만 허용)</li>
                   </ul>
                 </div>
 
-                <div className="p-4 bg-green-50 rounded-lg">
-                  <h3 className="font-semibold text-green-900 mb-2">2. 스프레드시트 준비</h3>
-                  <ul className="text-sm text-green-800 space-y-1">
+                <div className="p-4 rounded-lg stat-card-green">
+                  <h3 className="font-semibold text-green-700 mb-2">2. 스프레드시트 준비</h3>
+                  <ul className="text-sm text-green-600 space-y-1">
                     <li>• 새 구글 스프레드시트 생성</li>
                     <li>• 스프레드시트 URL에서 ID 복사</li>
                     <li>• 스프레드시트를 공개로 설정 또는 API 권한 부여</li>
                   </ul>
                 </div>
 
-                <div className="p-4 bg-purple-50 rounded-lg">
-                  <h3 className="font-semibold text-purple-900 mb-2">3. 환경 변수 설정</h3>
-                  <ul className="text-sm text-purple-800 space-y-1">
+                <div className="p-4 rounded-lg stat-card-purple">
+                  <h3 className="font-semibold text-purple-700 mb-2">3. 환경 변수 설정</h3>
+                  <ul className="text-sm text-purple-600 space-y-1">
                     <li>• GOOGLE_SHEETS_API_KEY: 발급받은 API 키</li>
                     <li>• GOOGLE_SPREADSHEET_ID: 스프레드시트 URL의 ID 부분</li>
                   </ul>

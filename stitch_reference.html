@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ambience Fleet Management Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#3B82F6",
+              "accent": "#8B5CF6",
+              "background-light": "#f8fafc",
+              "background-dark": "#0F172A",
+              "surface-dark": "rgba(255, 255, 255, 0.05)",
+              "surface-border": "rgba(255, 255, 255, 0.1)",
+            },
+            fontFamily: {
+              "display": ['Manrope', '"Noto Sans KR"', 'sans-serif']
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .gradient-text {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen">
+<nav class="sticky top-0 z-50 glass-panel border-b border-surface-border">
+<div class="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-[20px]">directions_car</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 gradient-text">ambience</h1>
+</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-primary font-medium transition-colors hover:text-primary" href="#">홈</a>
+<a class="text-slate-400 font-medium transition-colors hover:text-slate-200" href="#">차량 관리</a>
+<a class="text-slate-400 font-medium transition-colors hover:text-slate-200" href="#">운행 기록</a>
+<a class="text-slate-400 font-medium transition-colors hover:text-slate-200" href="#">운전자 관리</a>
+<a class="text-slate-400 font-medium transition-colors hover:text-slate-200" href="#">스프레드시트</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-slate-300 hover:text-white transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-accent"></span>
+</button>
+<div class="w-10 h-10 rounded-full bg-slate-700 bg-cover bg-center border border-surface-border" data-alt="User profile avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC6Ji8f7Q1fINvlpv5M-htbnQFjIWK9M-lxIQE5gmw_CTkJyi4ALqM-mK-3QNI_iqHDjAIIrk4vpf42J1mTIljmrf0HW7IZNZ0PGgvadWCtfXD7yBHoFmWR2u-xj0kZW-gc5rhVPDBJpzUCOpq_EJdxAeaXFm2WP6FjCFQXP-wA7F1KaCnRhCToJ-J5RiHUK545woQj1Sc_s8heXclNLICj4Ik4Wgma7QXS660FAm9uYi1cX2yU7QqbUksRRlPOPxQZzRcLB8rq1v0');"></div>
+</div>
+</div>
+</nav>
+<main class="max-w-[1400px] mx-auto px-6 py-8 flex flex-col gap-8">
+<header class="flex flex-col gap-2">
+<h2 class="text-3xl font-bold text-white tracking-tight">안녕하세요, 김운전님 👋</h2>
+<p class="text-slate-400 font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+                2023년 10월 24일 화요일
+            </p>
+</header>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="lg:col-span-2 flex flex-col gap-6">
+<div class="flex items-center justify-between">
+<h3 class="text-xl font-bold text-white">내 차량 상태</h3>
+<button class="text-sm text-primary hover:text-blue-400 font-medium flex items-center gap-1">
+                        전체 보기 <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="glass-panel rounded-2xl overflow-hidden group relative">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="p-5 flex flex-col gap-4 relative z-10">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="text-lg font-bold text-white">현대 투싼</h4>
+<p class="text-slate-400 text-sm">42너7839</p>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 text-xs font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-green-400"></span> 사용 가능
+                                </span>
+</div>
+<div class="w-full h-32 rounded-xl bg-cover bg-center border border-surface-border" data-alt="Hyundai Tucson side profile" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDzlmdoHZkIZDARYPetsHI66Z1uiKoyXmFRf4UrVceyGrI36JA4AhYuwJP8AKWe9G2mZZvoBXWZyKusc45l6Daylpr1_jBPGdjaJsMbG_nu9DMIcmVFdukXAY9r7tvYQE31DCB_1KmLvvHOwZq2E_TvDhpgquFIh7i4JjHmjEeHuxBd0ZC8Hrzgp_4AFxhEVL8T3Izzu1mJ6qGjcc518eqBwe7Sfz9OCvB_xRuGE69NrKXtaIWhr1_ZoPk4-GPcBS1vZ5chXCuiP5g');"></div>
+<div class="flex items-center justify-between pt-2 border-t border-surface-border">
+<div class="flex items-center gap-2 text-slate-300">
+<span class="material-symbols-outlined text-[18px] text-slate-400">speed</span>
+<span class="font-medium">50,000 km</span>
+</div>
+<button class="px-4 py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary hover:text-white transition-colors text-sm font-bold">
+                                    상세 정보
+                                </button>
+</div>
+</div>
+</div>
+<div class="glass-panel rounded-2xl overflow-hidden group relative">
+<div class="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="p-5 flex flex-col gap-4 relative z-10">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="text-lg font-bold text-white">현대 스타렉스</h4>
+<p class="text-slate-400 text-sm">74라7664</p>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> 운행 중
+                                </span>
+</div>
+<div class="w-full h-32 rounded-xl bg-cover bg-center border border-surface-border" data-alt="Hyundai Starex van side view" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBffJeWVRNjCjErOpf-FsLttNIlyyg-FrQ0WFRqEOwwwEdfsh_ZGPu1fWybojlXCeQAmzUG7UO3JyftbMTpQl4tCjqYRtmb5eDDZd_a0KVx38QfzjAc5uWsuBgxQUFOkqUylN_yHmxZh1VSJnNgCbbYMzh5G7soQYoYLMR5d8hVfgA5jUvJJpQjYe_XDdMSKbXglVL48srDlFuq2U0CB3WMT0X_z9ZaAnzkltUaaBGFcabfhZ9TrOi_uZegBLmGqaAs7PaV8CSZFFI');"></div>
+<div class="flex items-center justify-between pt-2 border-t border-surface-border">
+<div class="flex items-center gap-2 text-slate-300">
+<span class="material-symbols-outlined text-[18px] text-slate-400">speed</span>
+<span class="font-medium">75,000 km</span>
+</div>
+<button class="px-4 py-2 rounded-lg bg-surface-dark border border-surface-border hover:bg-white/10 transition-colors text-sm font-bold">
+                                    상세 정보
+                                </button>
+</div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+<div class="glass-panel rounded-xl p-4 flex items-center gap-4 border-l-4 border-l-primary">
+<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">oil_barrel</span>
+</div>
+<div class="flex-1">
+<h5 class="font-bold text-white text-sm">엔진오일 교체 기록</h5>
+<p class="text-xs text-slate-400">최근 교체: 48,000km (2,000km 전)</p>
+</div>
+<span class="material-symbols-outlined text-slate-500">chevron_right</span>
+</div>
+<div class="glass-panel rounded-xl p-4 flex items-center gap-4 border-l-4 border-l-accent">
+<div class="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent">
+<span class="material-symbols-outlined">build</span>
+</div>
+<div class="flex-1">
+<h5 class="font-bold text-white text-sm">차량 정비 기록</h5>
+<p class="text-xs text-slate-400">다음 정기 점검: 2023.11.15</p>
+</div>
+<span class="material-symbols-outlined text-slate-500">chevron_right</span>
+</div>
+</div>
+</div>
+<div class="glass-panel rounded-2xl p-6 relative overflow-hidden flex flex-col">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-3xl rounded-full -mr-10 -mt-10"></div>
+<div class="flex justify-between items-center mb-6 relative z-10">
+<h3 class="text-xl font-bold text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">add_road</span>
+                        운행 등록
+                    </h3>
+<div class="flex items-center gap-2 text-sm text-slate-400 font-medium">
+<span>1/3</span>
+<div class="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+<div class="w-1/3 h-full bg-gradient-to-r from-primary to-accent rounded-full"></div>
+</div>
+</div>
+</div>
+<form class="flex flex-col gap-4 relative z-10 flex-1">
+<div class="space-y-1">
+<label class="text-xs font-medium text-slate-400 ml-1">운전자</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">person</span>
+<input class="w-full bg-surface-dark border border-surface-border rounded-xl py-2.5 pl-10 pr-4 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" readonly="" type="text" value="김운전"/>
+</div>
+</div>
+<div class="space-y-1">
+<label class="text-xs font-medium text-slate-400 ml-1">차량 선택</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">directions_car</span>
+<select class="w-full bg-surface-dark border border-surface-border rounded-xl py-2.5 pl-10 pr-10 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all appearance-none">
+<option value="1">현대 투싼 (42너7839)</option>
+<option value="2">현대 스타렉스 (74라7664)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">expand_more</span>
+</div>
+</div>
+<div class="space-y-1">
+<label class="text-xs font-medium text-slate-400 ml-1">출발 주행거리 (km)</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">speed</span>
+<input class="w-full bg-surface-dark border border-surface-border rounded-xl py-2.5 pl-10 pr-4 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" type="number" value="50000"/>
+</div>
+</div>
+<div class="space-y-1">
+<label class="text-xs font-medium text-slate-400 ml-1">목적지</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">location_on</span>
+<input class="w-full bg-surface-dark border border-surface-border rounded-xl py-2.5 pl-10 pr-4 text-white placeholder:text-slate-600 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="목적지 입력" type="text"/>
+</div>
+</div>
+<div class="space-y-1">
+<label class="text-xs font-medium text-slate-400 ml-1">운행 목적</label>
+<textarea class="w-full bg-surface-dark border border-surface-border rounded-xl py-2.5 px-4 text-white placeholder:text-slate-600 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none" placeholder="간단한 운행 목적 입력" rows="2"></textarea>
+</div>
+<button class="mt-auto pt-4" type="button">
+<div class="w-full rounded-xl bg-gradient-to-r from-primary to-accent p-[1px]">
+<div class="w-full bg-background-dark/50 rounded-xl py-3 text-white font-bold text-center hover:bg-transparent transition-colors shadow-[0_0_20px_rgba(59,130,246,0.3)] flex items-center justify-center gap-2">
+                                운행 시작 <span class="material-symbols-outlined text-[20px]">play_arrow</span>
+</div>
+</div>
+</button>
+</form>
+</div>
+</div>
+</main>
+</body></html>

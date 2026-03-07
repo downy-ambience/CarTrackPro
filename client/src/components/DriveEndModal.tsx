@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -23,10 +23,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Camera, Check, AlertCircle, Loader2, AlertTriangle } from "lucide-react";
+import { Camera, Check, AlertCircle, Loader2, AlertTriangle, Upload } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ObjectUploader } from "@/components/ObjectUploader";
-import type { UploadResult } from "@uppy/core";
 
 const driveEndSchema = z.object({
   endMileage: z.number().min(1, "종료 주행거리를 입력해주세요"),
@@ -69,6 +67,8 @@ export default function DriveEndModal({
   const queryClient = useQueryClient();
   const [capturedPhotos, setCapturedPhotos] = useState<Record<string, string>>({});
   const [currentStep, setCurrentStep] = useState<"mileage" | "photos">("mileage");
+  const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const form = useForm<DriveEndForm>({
     resolver: zodResolver(driveEndSchema),
@@ -90,7 +90,7 @@ export default function DriveEndModal({
   const endDriveMutation = useMutation({
     mutationFn: async (data: DriveEndForm) => {
       if (!driveRecord) throw new Error("운행 기록이 없습니다");
-      
+
       const response = await fetch(`/api/drive-records/${driveRecord.id}`, {
         method: "PATCH",
         headers: {
@@ -112,12 +112,12 @@ export default function DriveEndModal({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/drive-records"] });
       queryClient.invalidateQueries({ queryKey: ["/api/vehicles"] });
-      
+
       toast({
         title: "운행 종료 완료",
         description: "운행이 성공적으로 종료되었습니다.",
       });
-      
+
       onSuccess?.();
       onClose();
       form.reset();
@@ -134,91 +134,56 @@ export default function DriveEndModal({
     },
   });
 
-  const createVehiclePhotoMutation = useMutation({
-    mutationFn: async (data: { photoType: string; photoPath: string }) => {
-      const response = await fetch("/api/vehicle-photos", {
+  const handlePhotoUpload = async (photoType: string, file: File) => {
+    if (!driveRecord) return;
+
+    setUploadingPhoto(photoType);
+
+    try {
+      // Upload file to server
+      const formData = new FormData();
+      formData.append("photo", file);
+
+      const uploadResponse = await fetch("/api/upload", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) throw new Error("업로드 실패");
+
+      const { photoPath } = await uploadResponse.json();
+
+      // Save photo record to database
+      const saveResponse = await fetch("/api/vehicle-photos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          driveRecordId: driveRecord?.id,
-          photoType: data.photoType,
-          photoPath: data.photoPath,
+          driveRecordId: driveRecord.id,
+          photoType,
+          photoPath,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("사진 저장에 실패했습니다");
-      }
+      if (!saveResponse.ok) throw new Error("사진 저장 실패");
 
-      return response.json();
-    },
-  });
+      setCapturedPhotos(prev => ({
+        ...prev,
+        [photoType]: photoPath,
+      }));
 
-  const getUploadURL = async (): Promise<string> => {
-    const response = await fetch("/api/objects/upload", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    const data = await response.json();
-    return data.uploadURL;
-  };
-
-  const handlePhotoUpload = async (photoType: string) => {
-    return {
-      method: "PUT" as const,
-      url: await getUploadURL(),
-    };
-  };
-
-  const handlePhotoComplete = async (photoType: string, result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-    if (result.successful && result.successful.length > 0) {
-      const uploadedFile = result.successful[0];
-      const uploadURL = uploadedFile.uploadURL as string;
-      
-      try {
-        // Normalize the photo path
-        const response = await fetch("/api/vehicle-photo-upload", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            photoURL: uploadURL,
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          
-          // Save photo to database
-          await createVehiclePhotoMutation.mutateAsync({
-            photoType,
-            photoPath: data.objectPath,
-          });
-
-          // Update captured photos state
-          setCapturedPhotos(prev => ({
-            ...prev,
-            [photoType]: data.objectPath,
-          }));
-
-          toast({
-            title: "사진 업로드 완료",
-            description: `${REQUIRED_PHOTOS.find(p => p.type === photoType)?.label} 사진이 저장되었습니다.`,
-          });
-        }
-      } catch (error) {
-        console.error("Photo processing error:", error);
-        toast({
-          title: "사진 처리 실패",
-          description: "사진 처리 중 오류가 발생했습니다.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "사진 업로드 완료",
+        description: `${REQUIRED_PHOTOS.find(p => p.type === photoType)?.label} 사진이 저장되었습니다.`,
+      });
+    } catch (error) {
+      console.error("Photo upload error:", error);
+      toast({
+        title: "사진 업로드 실패",
+        description: "사진 업로드 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingPhoto(null);
     }
   };
 
@@ -347,7 +312,7 @@ export default function DriveEndModal({
                 </span>
               </div>
               <Progress value={progressPercentage} className="mb-4" />
-              
+
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
@@ -359,14 +324,14 @@ export default function DriveEndModal({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {REQUIRED_PHOTOS.map((photo) => {
                 const isCompleted = !!capturedPhotos[photo.type];
+                const isUploading = uploadingPhoto === photo.type;
                 return (
                   <div
                     key={photo.type}
-                    className={`p-4 border-2 rounded-lg ${
-                      isCompleted 
-                        ? "border-green-200 bg-green-50" 
+                    className={`p-4 border-2 rounded-lg ${isCompleted
+                        ? "border-green-200 bg-green-50"
                         : "border-gray-200 bg-white"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div>
@@ -375,22 +340,55 @@ export default function DriveEndModal({
                       </div>
                       {isCompleted ? (
                         <Check className="h-5 w-5 text-green-600" />
+                      ) : isUploading ? (
+                        <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
                       ) : (
                         <Camera className="h-5 w-5 text-gray-400" />
                       )}
                     </div>
-                    
-                    {!isCompleted && (
-                      <ObjectUploader
-                        maxNumberOfFiles={1}
-                        maxFileSize={10485760}
-                        onGetUploadParameters={() => handlePhotoUpload(photo.type)}
-                        onComplete={(result) => handlePhotoComplete(photo.type, result)}
-                        buttonClassName="w-full"
-                      >
-                        <Camera className="h-4 w-4 mr-2" />
-                        사진 촬영
-                      </ObjectUploader>
+
+                    {isCompleted ? (
+                      <div className="relative">
+                        <img
+                          src={capturedPhotos[photo.type]}
+                          alt={photo.label}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <input
+                          ref={(el) => { fileInputRefs.current[photo.type] = el; }}
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handlePhotoUpload(photo.type, file);
+                            }
+                          }}
+                        />
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          disabled={isUploading}
+                          onClick={() => fileInputRefs.current[photo.type]?.click()}
+                        >
+                          {isUploading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              업로드 중...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4 mr-2" />
+                              사진 촬영 / 선택
+                            </>
+                          )}
+                        </Button>
+                      </>
                     )}
                   </div>
                 );
@@ -402,8 +400,8 @@ export default function DriveEndModal({
               <Alert className="mt-4 border-amber-200 bg-amber-50">
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
                 <AlertDescription className="text-amber-800">
-                  <strong>주의:</strong> 사진을 모두 촬영하지 않고 운행을 종료할 경우, 
-                  향후 차량 손상이나 사고 발생 시 책임 문제가 발생할 수 있습니다. 
+                  <strong>주의:</strong> 사진을 모두 촬영하지 않고 운행을 종료할 경우,
+                  향후 차량 손상이나 사고 발생 시 책임 문제가 발생할 수 있습니다.
                   차량 상태 증명이 어려워 분쟁 시 불리할 수 있습니다.
                 </AlertDescription>
               </Alert>
@@ -418,7 +416,7 @@ export default function DriveEndModal({
               >
                 이전: 주행거리
               </Button>
-              
+
               <div className="flex space-x-2">
                 {completedPhotosCount < totalPhotosCount && (
                   <Button
@@ -430,7 +428,7 @@ export default function DriveEndModal({
                     사진 없이 종료
                   </Button>
                 )}
-                
+
                 <Button
                   onClick={onCompleteSubmit}
                   disabled={completedPhotosCount < totalPhotosCount || endDriveMutation.isPending}

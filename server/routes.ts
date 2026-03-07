@@ -1,9 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { DbStorage } from "./dbStorage";
-
-const storage = new DbStorage();
-import { 
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import {
   insertUserSchema,
   insertDriveRecordSchema,
   updateDriveRecordSchema,
@@ -11,13 +12,43 @@ import {
   insertMaintenanceRecordSchema,
   updateMaintenanceRecordSchema,
 } from "@shared/schema";
-import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
-import { ObjectPermission } from "./objectAcl";
 import { sendDriveRecordNotification, sendMaintenanceNotification } from "./slack";
 import { googleSheetsService } from "./googleSheets";
 
+const storage = new DbStorage();
+
+// Configure multer for local file uploads
+const uploadsDir = path.resolve(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const multerStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, uniqueSuffix + ext);
+  },
+});
+
+const upload = multer({
+  storage: multerStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("이미지 파일만 업로드 가능합니다"));
+    }
+  },
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  const objectStorageService = new ObjectStorageService();
+  // Serve uploaded files statically
+  app.use("/uploads", (await import("express")).default.static(uploadsDir));
 
   // User routes
   app.get("/api/users", async (req, res) => {
@@ -32,13 +63,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/users/current", async (req, res) => {
     try {
-      const users = await storage.getAllUsers();
-      // Return first user as current user for now
-      if (users.length > 0) {
-        res.json(users[0]);
-      } else {
-        res.status(404).json({ error: "사용자가 없습니다" });
+      const user = await storage.getUserByUsername("driver1");
+      if (!user) {
+        return res.status(404).json({ error: "사용자를 찾을 수 없습니다" });
       }
+      res.json(user);
     } catch (error) {
       console.error("Error getting current user:", error);
       res.status(500).json({ error: "현재 사용자 정보를 가져오는데 실패했습니다" });
@@ -111,7 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/drive-records", async (req, res) => {
     try {
       const { vehicleId, driverId } = req.query;
-      
+
       let records;
       if (vehicleId) {
         records = await storage.getDriveRecordsByVehicle(vehicleId as string);
@@ -120,7 +149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         records = await storage.getAllDriveRecords();
       }
-      
+
       res.json(records);
     } catch (error) {
       console.error("Error getting drive records:", error);
@@ -145,20 +174,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertDriveRecordSchema.parse(req.body);
       const record = await storage.createDriveRecord(validatedData);
-      
+
       // Update vehicle status to in_use
       await storage.updateVehicle(validatedData.vehicleId, { status: "in_use" });
-      
+
       // Send Slack notification for new drive record
       const vehicle = await storage.getVehicle(validatedData.vehicleId);
       const driver = await storage.getUser(validatedData.driverId);
-      
+
       if (vehicle && driver) {
         await sendDriveRecordNotification(record, vehicle, driver);
         await googleSheetsService.addDriveRecord(record, vehicle, driver);
         await storage.updateDriveRecord(record.id, { slackNotified: true });
       }
-      
+
       res.json(record);
     } catch (error) {
       console.error("Error creating drive record:", error);
@@ -170,14 +199,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = updateDriveRecordSchema.parse(req.body);
       const record = await storage.updateDriveRecord(req.params.id, validatedData);
-      
+
       if (!record) {
         return res.status(404).json({ error: "운행 기록을 찾을 수 없습니다" });
       }
 
       // If completing the drive, update vehicle status and mileage
       if (validatedData.status === "completed" && validatedData.endMileage) {
-        await storage.updateVehicle(record.vehicleId, { 
+        await storage.updateVehicle(record.vehicleId, {
           status: "available",
           currentMileage: validatedData.endMileage,
         });
@@ -185,18 +214,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Send completion Slack notification
         const vehicle = await storage.getVehicle(record.vehicleId);
         const driver = await storage.getUser(record.driverId);
-        
+
         if (vehicle && driver && !record.slackNotified) {
           await sendDriveRecordNotification(record, vehicle, driver);
           await googleSheetsService.addDriveRecord(record, vehicle, driver);
           await storage.updateDriveRecord(record.id, { slackNotified: true });
         }
       }
-      
+
       res.json(record);
     } catch (error) {
       console.error("Error updating drive record:", error);
       res.status(500).json({ error: "운행 기록 업데이트에 실패했습니다" });
+    }
+  });
+
+  // Photo upload route (local file system)
+  app.post("/api/upload", upload.single("photo"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "파일이 없습니다" });
+      }
+      const photoPath = `/uploads/${req.file.filename}`;
+      res.json({ photoPath });
+    } catch (error) {
+      console.error("Error uploading photo:", error);
+      res.status(500).json({ error: "사진 업로드에 실패했습니다" });
     }
   });
 
@@ -218,7 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(photo);
     } catch (error) {
       console.error("Error creating vehicle photo:", error);
-      res.status(500).json({ error: "사진 기록 생성에 실패했습니다" });
+      res.status(500).json({ error: "차량 사진 저장에 실패했습니다" });
     }
   });
 
@@ -237,22 +280,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertMaintenanceRecordSchema.parse(req.body);
       const record = await storage.createMaintenanceRecord(validatedData);
-      
-      // Update vehicle's last check date to the service date
+
+      // Update vehicle's last check date
       await storage.updateVehicle(validatedData.vehicleId, {
-        lastCheckDate: validatedData.serviceDate || new Date()
+        lastCheckDate: validatedData.serviceDate || new Date().toISOString()
       });
-      
+
       // Send Slack notification for maintenance
       const vehicle = await storage.getVehicle(validatedData.vehicleId);
       if (vehicle) {
         await sendMaintenanceNotification(
-          vehicle, 
-          validatedData.type || "정비", 
+          vehicle,
+          validatedData.type || "정비",
           validatedData.description || "정비 작업 완료"
         );
       }
-      
+
       res.json(record);
     } catch (error) {
       console.error("Error creating maintenance record:", error);
@@ -264,90 +307,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = updateMaintenanceRecordSchema.parse(req.body);
       const record = await storage.updateMaintenanceRecord(req.params.id, validatedData);
-      
+
       if (!record) {
         return res.status(404).json({ error: "정비 기록을 찾을 수 없습니다" });
       }
-      
+
       res.json(record);
     } catch (error) {
       console.error("Error updating maintenance record:", error);
       res.status(500).json({ error: "정비 기록 업데이트에 실패했습니다" });
-    }
-  });
-
-  // Object storage routes for photo uploads
-  app.get("/objects/:objectPath(*)", async (req, res) => {
-    try {
-      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      objectStorageService.downloadObject(objectFile, res);
-    } catch (error) {
-      console.error("Error serving object:", error);
-      if (error instanceof ObjectNotFoundError) {
-        return res.sendStatus(404);
-      }
-      return res.sendStatus(500);
-    }
-  });
-
-  app.post("/api/objects/upload", async (req, res) => {
-    try {
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      res.json({ uploadURL });
-    } catch (error) {
-      console.error("Error getting upload URL:", error);
-      res.status(500).json({ error: "업로드 URL 생성에 실패했습니다" });
-    }
-  });
-
-  app.put("/api/vehicle-photo-upload", async (req, res) => {
-    try {
-      if (!req.body.photoURL) {
-        return res.status(400).json({ error: "photoURL이 필요합니다" });
-      }
-
-      const objectPath = objectStorageService.normalizeObjectEntityPath(req.body.photoURL);
-      res.json({ objectPath });
-    } catch (error) {
-      console.error("Error processing photo upload:", error);
-      res.status(500).json({ error: "사진 업로드 처리에 실패했습니다" });
-    }
-  });
-
-  // Vehicle photos CRUD endpoints
-  app.post("/api/vehicle-photos", async (req, res) => {
-    try {
-      const validatedData = insertVehiclePhotoSchema.parse(req.body);
-      const photo = await storage.createVehiclePhoto(validatedData);
-      res.json(photo);
-    } catch (error) {
-      console.error("Error creating vehicle photo:", error);
-      res.status(500).json({ error: "차량 사진 저장에 실패했습니다" });
-    }
-  });
-
-  app.get("/api/drive-records/:id/photos", async (req, res) => {
-    try {
-      const photos = await storage.getVehiclePhotosByDriveRecord(req.params.id);
-      res.json(photos);
-    } catch (error) {
-      console.error("Error getting vehicle photos:", error);
-      res.status(500).json({ error: "차량 사진을 가져오는데 실패했습니다" });
-    }
-  });
-
-  // Users route (for getting default user)
-  app.get("/api/users/current", async (req, res) => {
-    try {
-      // For simplicity, return the first user (in production, use proper authentication)
-      const user = await storage.getUserByUsername("driver1");
-      if (!user) {
-        return res.status(404).json({ error: "사용자를 찾을 수 없습니다" });
-      }
-      res.json(user);
-    } catch (error) {
-      console.error("Error getting current user:", error);
-      res.status(500).json({ error: "사용자 정보를 가져오는데 실패했습니다" });
     }
   });
 
@@ -365,7 +333,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/google-sheets/status", async (req, res) => {
     const hasApiKey = !!process.env.GOOGLE_SHEETS_API_KEY;
     const hasSpreadsheetId = !!process.env.GOOGLE_SPREADSHEET_ID;
-    
+
     res.json({
       configured: hasApiKey && hasSpreadsheetId,
       hasApiKey,

@@ -1,13 +1,12 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Camera, Check, Info } from "lucide-react";
+import { Camera, Check, Info, Upload, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ObjectUploader } from "@/components/ObjectUploader";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { DriveRecord } from "@shared/schema";
-import type { UploadResult } from "@uppy/core";
 
 interface PhotoCaptureProps {
   driveRecord: DriveRecord;
@@ -35,68 +34,52 @@ const PHOTO_TYPES = {
 export default function PhotoCapture({ driveRecord, capturedPhotos, onPhotoCaptured }: PhotoCaptureProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  const createVehiclePhotoMutation = useMutation({
-    mutationFn: async (data: { photoType: string; photoPath: string }) => {
-      const response = await apiRequest("POST", "/api/vehicle-photos", {
-        driveRecordId: driveRecord.id,
-        photoType: data.photoType,
-        photoPath: data.photoPath,
+  const handlePhotoUpload = async (photoType: string, file: File) => {
+    setUploadingPhoto(photoType);
+
+    try {
+      // Upload file
+      const formData = new FormData();
+      formData.append("photo", file);
+
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       });
-      return response.json();
-    },
-    onSuccess: () => {
+
+      if (!uploadResponse.ok) throw new Error("업로드 실패");
+      const { photoPath } = await uploadResponse.json();
+
+      // Save photo record
+      await apiRequest("POST", "/api/vehicle-photos", {
+        driveRecordId: driveRecord.id,
+        photoType,
+        photoPath,
+      });
+
       queryClient.invalidateQueries({ queryKey: ["/api/drive-records", driveRecord.id, "photos"] });
-    },
-  });
 
-  const handlePhotoCapture = async (photoType: string) => {
-    return {
-      method: "PUT" as const,
-      url: await getUploadURL(),
-    };
-  };
+      // Update local state
+      const newPhotos = { ...capturedPhotos, [photoType]: photoPath };
+      onPhotoCaptured(newPhotos);
 
-  const getUploadURL = async (): Promise<string> => {
-    const response = await apiRequest("POST", "/api/objects/upload", {});
-    const data = await response.json();
-    return data.uploadURL;
-  };
-
-  const handleUploadComplete = async (photoType: string, result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-    if (result.successful && result.successful.length > 0) {
-      const uploadedFile = result.successful[0];
-      const uploadURL = uploadedFile.uploadURL as string;
-      
-      try {
-        // Normalize the photo path
-        const response = await apiRequest("PUT", "/api/vehicle-photo-upload", {
-          photoURL: uploadURL,
-        });
-        const data = await response.json();
-        
-        // Save to database
-        await createVehiclePhotoMutation.mutateAsync({
-          photoType,
-          photoPath: data.objectPath,
-        });
-
-        // Update local state
-        const newPhotos = { ...capturedPhotos, [photoType]: data.objectPath };
-        onPhotoCaptured(newPhotos);
-        
-        toast({
-          title: "사진 촬영 완료",
-          description: `${PHOTO_TYPES.EXTERIOR.find(p => p.type === photoType)?.label || PHOTO_TYPES.INTERIOR.find(p => p.type === photoType)?.label} 사진이 저장되었습니다.`,
-        });
-      } catch (error) {
-        console.error("Error processing photo upload:", error);
-        toast({
-          title: "사진 저장 실패",
-          description: "사진 저장 중 오류가 발생했습니다.",
-          variant: "destructive",
-        });
-      }
+      const allTypes = [...PHOTO_TYPES.EXTERIOR, ...PHOTO_TYPES.INTERIOR];
+      toast({
+        title: "사진 촬영 완료",
+        description: `${allTypes.find(p => p.type === photoType)?.label} 사진이 저장되었습니다.`,
+      });
+    } catch (error) {
+      console.error("Error processing photo upload:", error);
+      toast({
+        title: "사진 저장 실패",
+        description: "사진 저장 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingPhoto(null);
     }
   };
 
@@ -106,17 +89,25 @@ export default function PhotoCapture({ driveRecord, capturedPhotos, onPhotoCaptu
 
   const PhotoSlot = ({ photoType, label, size = "normal" }: { photoType: string; label: string; size?: "normal" | "large" }) => {
     const isCaptured = capturedPhotos[photoType];
+    const isUploading = uploadingPhoto === photoType;
     const baseClasses = `photo-slot ${isCaptured ? "captured" : ""}`;
     const sizeClasses = size === "large" ? "p-8" : "p-4";
 
     if (isCaptured) {
       return (
         <div className={`${baseClasses} ${sizeClasses}`}>
-          <Check className={`text-green-500 mb-2 ${size === "large" ? "text-3xl" : "text-2xl"} mx-auto`} />
-          <p className={`font-medium text-green-600 ${size === "large" ? "text-base" : "text-sm"}`}>
-            {label}
-          </p>
-          <p className={`text-green-500 mt-${size === "large" ? "2" : "1"} ${size === "large" ? "text-sm" : "text-xs"}`}>
+          <img
+            src={capturedPhotos[photoType]}
+            alt={label}
+            className="w-full h-24 object-cover rounded-lg mb-2"
+          />
+          <div className="flex items-center justify-center gap-1">
+            <Check className="w-4 h-4 text-green-500" />
+            <p className={`font-medium text-green-600 ${size === "large" ? "text-base" : "text-sm"}`}>
+              {label}
+            </p>
+          </div>
+          <p className={`text-green-500 mt-1 ${size === "large" ? "text-sm" : "text-xs"} text-center`}>
             촬영 완료
           </p>
         </div>
@@ -124,23 +115,36 @@ export default function PhotoCapture({ driveRecord, capturedPhotos, onPhotoCaptu
     }
 
     return (
-      <ObjectUploader
-        maxNumberOfFiles={1}
-        maxFileSize={10 * 1024 * 1024} // 10MB
-        onGetUploadParameters={() => handlePhotoCapture(photoType)}
-        onComplete={(result) => handleUploadComplete(photoType, result)}
-        buttonClassName={`${baseClasses} ${sizeClasses} w-full h-full border-none p-0 bg-transparent hover:bg-transparent`}
-      >
-        <div className="flex flex-col items-center">
-          <Camera className={`text-gray-400 mb-2 ${size === "large" ? "text-3xl" : "text-2xl"}`} />
+      <div className={`${baseClasses} ${sizeClasses}`}>
+        <input
+          ref={(el) => { fileInputRefs.current[photoType] = el; }}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handlePhotoUpload(photoType, file);
+          }}
+        />
+        <button
+          className="w-full h-full flex flex-col items-center"
+          onClick={() => fileInputRefs.current[photoType]?.click()}
+          disabled={isUploading}
+        >
+          {isUploading ? (
+            <Loader2 className={`text-blue-500 mb-2 animate-spin ${size === "large" ? "w-8 h-8" : "w-6 h-6"}`} />
+          ) : (
+            <Camera className={`text-gray-400 mb-2 ${size === "large" ? "w-8 h-8" : "w-6 h-6"}`} />
+          )}
           <p className={`font-medium text-gray-600 ${size === "large" ? "text-base" : "text-sm"}`}>
             {label}
           </p>
-          <p className={`text-gray-400 mt-${size === "large" ? "2" : "1"} ${size === "large" ? "text-sm" : "text-xs"}`}>
-            터치하여 촬영
+          <p className={`text-gray-400 mt-1 ${size === "large" ? "text-sm" : "text-xs"}`}>
+            {isUploading ? "업로드 중..." : "터치하여 촬영"}
           </p>
-        </div>
-      </ObjectUploader>
+        </button>
+      </div>
     );
   };
 
