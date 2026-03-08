@@ -5,7 +5,7 @@ services:
   - type: web
     name: cartrackpro
     runtime: node
-    region: singapore  # 한국에서 가장 가까운 리전
+    region: singapore
     plan: free
     buildCommand: npm install && npm run build
     startCommand: npm start
@@ -13,10 +13,6 @@ services:
       - key: NODE_ENV
         value: production
       - key: GOOGLE_SERVICE_ACCOUNT_KEY
-        sync: false  # Render 대시보드에서 수동 입력
+        sync: false
       - key: GOOGLE_SPREADSHEET_ID
         sync: false
-    disk:
-      name: cartrackpro-data
-      mountPath: /opt/render/project/src/data
-      sizeGB: 1
