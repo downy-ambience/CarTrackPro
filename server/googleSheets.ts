@@ -220,6 +220,62 @@ export class GoogleSheetsService {
     }
   }
 
+  // ========== 기존 스프레드시트 연결 ==========
+  async connectSpreadsheet(spreadsheetId: string): Promise<{ message: string }> {
+    if (!this.isEnabled()) {
+      throw new Error('Google Sheets 서비스 계정이 설정되지 않았습니다');
+    }
+
+    // 스프레드시트 접근 가능 여부 확인
+    try {
+      const response = await this.sheets.spreadsheets.get({ spreadsheetId });
+      const title = response.data.properties?.title || 'Unknown';
+      console.log(`📋 스프레드시트 연결: "${title}" (${spreadsheetId})`);
+    } catch (error: any) {
+      if (error.code === 403 || error.code === 404) {
+        throw new Error(
+          `스프레드시트에 접근할 수 없습니다. 서비스 계정(${this.getServiceAccountEmail()})에게 편집자 권한을 공유해주세요.`
+        );
+      }
+      throw error;
+    }
+
+    // ID 저장
+    this.spreadsheetId = spreadsheetId;
+    process.env.GOOGLE_SPREADSHEET_ID = spreadsheetId;
+    this.saveSpreadsheetIdToEnv(spreadsheetId);
+
+    // 헤더 초기화 시도 (첫 행이 비어있으면)
+    try {
+      const existing = await this.sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: 'A1:A1',
+      });
+      if (!existing.data.values || existing.data.values.length === 0) {
+        await this.initializeHeaders(spreadsheetId);
+      }
+    } catch {
+      // 헤더 초기화 실패해도 연결은 성공
+    }
+
+    return { message: `스프레드시트가 연결되었습니다` };
+  }
+
+  private async initializeHeaders(spreadsheetId: string) {
+    const headers = [
+      '날짜', '시작시간', '종료시간', '운전자', '차량번호',
+      '차량모델', '출발지', '목적지', '목적', '시작주행거리',
+      '종료주행거리', '총주행거리', '상태'
+    ];
+    await this.sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: 'A1:M1',
+      valueInputOption: 'RAW',
+      requestBody: { values: [headers] },
+    });
+    console.log('✅ 헤더 초기화 완료');
+  }
+
   // ========== 스프레드시트 헤더 초기화 (기존 시트 대상) ==========
   async initializeSpreadsheet(): Promise<void> {
     if (!this.isEnabled() || !this.spreadsheetId) {

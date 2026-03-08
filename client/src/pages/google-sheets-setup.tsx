@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileSpreadsheet, CheckCircle, AlertCircle, ExternalLink, Plus, RefreshCw, Mail } from "lucide-react";
+import { FileSpreadsheet, CheckCircle, AlertCircle, ExternalLink, Plus, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,30 +19,30 @@ interface SheetsStatus {
 export default function GoogleSheetsSetup() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [ownerEmail, setOwnerEmail] = useState("");
+  const [spreadsheetUrl, setSpreadsheetUrl] = useState("");
 
   const { data: status, isLoading } = useQuery<SheetsStatus>({
     queryKey: ["/api/google-sheets/status"],
   });
 
-  const createMutation = useMutation({
+  const connectMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/google-sheets/create", {
-        ownerEmail: ownerEmail || undefined,
+      const res = await apiRequest("POST", "/api/google-sheets/connect", {
+        spreadsheetUrl,
       });
       return res.json();
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/google-sheets/status"] });
       toast({
-        title: "✅ 스프레드시트 생성 완료!",
+        title: "✅ 스프레드시트 연결 완료!",
         description: data.message,
       });
     },
     onError: (error: any) => {
       toast({
-        title: "오류",
-        description: error.message || "스프레드시트 생성에 실패했습니다",
+        title: "연결 실패",
+        description: error.message || "스프레드시트 연결에 실패했습니다. 서비스 계정에 편집 권한을 공유했는지 확인해주세요.",
         variant: "destructive",
       });
     },
@@ -129,43 +129,56 @@ export default function GoogleSheetsSetup() {
             </CardContent>
           </Card>
 
-          {/* 스프레드시트 생성 */}
+          {/* 스프레드시트 연결 */}
           {status?.enabled && !status?.hasSpreadsheet && (
             <Card className="glass-card-static animate-fade-in-delay-1">
               <CardHeader>
                 <CardTitle className="text-lg text-slate-800 flex items-center gap-2">
                   <Plus className="w-5 h-5 text-blue-500" />
-                  스프레드시트 자동 생성
+                  스프레드시트 연결
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-slate-500">
-                  서비스 계정이 연결되어 있습니다. 아래 버튼을 클릭하면 운행기록 스프레드시트가 자동으로 생성됩니다.
-                </p>
+              <CardContent className="space-y-5">
+                {/* 안내 */}
+                <div className="p-4 rounded-lg stat-card-blue">
+                  <h3 className="font-semibold text-blue-700 mb-2">연결 방법</h3>
+                  <ol className="text-sm text-blue-600 space-y-1 list-decimal pl-4">
+                    <li><a href="https://sheets.google.com" target="_blank" rel="noopener noreferrer" className="underline">Google Sheets</a>에서 새 스프레드시트 생성</li>
+                    <li>스프레드시트 → <strong>공유</strong> → 아래 서비스 계정 이메일에 <strong>편집자</strong> 권한 부여</li>
+                    <li>스프레드시트 URL을 아래에 붙여넣기</li>
+                  </ol>
+                </div>
+
+                {/* 서비스 계정 이메일 복사 */}
+                {status?.serviceAccountEmail && (
+                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                    <p className="text-xs text-slate-400 mb-1">이 이메일을 스프레드시트에 편집자로 공유하세요:</p>
+                    <code className="text-sm font-mono text-blue-600 select-all">{status.serviceAccountEmail}</code>
+                  </div>
+                )}
+
+                {/* URL 입력 */}
                 <div className="flex flex-col sm:flex-row gap-3 items-end">
                   <div className="flex-1 w-full">
-                    <label className="text-sm text-slate-500 mb-1 block">
-                      <Mail className="w-3.5 h-3.5 inline mr-1" />
-                      공유할 이메일 (선택사항)
-                    </label>
+                    <label className="text-sm text-slate-500 mb-1 block">스프레드시트 URL</label>
                     <Input
-                      type="email"
-                      placeholder="your@email.com"
-                      value={ownerEmail}
-                      onChange={(e) => setOwnerEmail(e.target.value)}
+                      type="url"
+                      placeholder="https://docs.google.com/spreadsheets/d/..."
+                      value={spreadsheetUrl}
+                      onChange={(e) => setSpreadsheetUrl(e.target.value)}
                     />
                   </div>
                   <button
                     className="btn-gradient flex items-center gap-2 whitespace-nowrap"
-                    onClick={() => createMutation.mutate()}
-                    disabled={createMutation.isPending}
+                    onClick={() => connectMutation.mutate()}
+                    disabled={connectMutation.isPending}
                   >
-                    {createMutation.isPending ? (
+                    {connectMutation.isPending ? (
                       <RefreshCw className="w-4 h-4 animate-spin" />
                     ) : (
-                      <Plus className="w-4 h-4" />
+                      <ExternalLink className="w-4 h-4" />
                     )}
-                    {createMutation.isPending ? '생성 중...' : '스프레드시트 생성'}
+                    {connectMutation.isPending ? '연결 중...' : '스프레드시트 연결'}
                   </button>
                 </div>
               </CardContent>

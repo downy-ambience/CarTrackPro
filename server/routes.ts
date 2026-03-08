@@ -360,6 +360,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(status);
   });
 
+  // 기존 스프레드시트 연결 (URL로)
+  app.post("/api/google-sheets/connect", async (req, res) => {
+    try {
+      if (!googleSheetsService.isEnabled()) {
+        return res.status(400).json({ error: "서비스 계정이 설정되지 않았습니다" });
+      }
+
+      const { spreadsheetUrl } = req.body;
+      if (!spreadsheetUrl) {
+        return res.status(400).json({ error: "스프레드시트 URL을 입력해주세요" });
+      }
+
+      // URL에서 스프레드시트 ID 추출
+      const match = spreadsheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+      if (!match) {
+        return res.status(400).json({ error: "올바른 Google Spreadsheet URL이 아닙니다" });
+      }
+
+      const spreadsheetId = match[1];
+      const result = await googleSheetsService.connectSpreadsheet(spreadsheetId);
+
+      res.json({
+        success: true,
+        spreadsheetId,
+        url: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+        message: result.message,
+      });
+    } catch (error: any) {
+      console.error("Error connecting spreadsheet:", error);
+      res.status(500).json({ error: error.message || "스프레드시트 연결에 실패했습니다" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
