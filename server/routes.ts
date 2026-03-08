@@ -50,6 +50,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files statically
   app.use("/uploads", (await import("express")).default.static(uploadsDir));
 
+  // Slack test endpoint for debugging
+  app.get("/api/slack/test", async (req, res) => {
+    const token = process.env.SLACK_BOT_TOKEN;
+    const channelId = process.env.SLACK_CHANNEL_ID;
+
+    if (!token || !channelId) {
+      return res.json({
+        status: "error",
+        message: "환경변수 누락",
+        SLACK_BOT_TOKEN: token ? "✅ 설정됨" : "❌ 없음",
+        SLACK_CHANNEL_ID: channelId ? "✅ 설정됨" : "❌ 없음",
+      });
+    }
+
+    try {
+      const { WebClient } = await import("@slack/web-api");
+      const client = new WebClient(token);
+
+      // Test auth
+      const authResult = await client.auth.test();
+
+      // Send test message
+      const msgResult = await client.chat.postMessage({
+        channel: channelId,
+        text: "🧪 CarTrack Slack 연동 테스트 메시지입니다!",
+      });
+
+      return res.json({
+        status: "success",
+        message: "Slack 메시지 전송 성공!",
+        bot_name: authResult.user,
+        team: authResult.team,
+        channel_id: channelId,
+        message_ts: msgResult.ts,
+      });
+    } catch (error: any) {
+      return res.json({
+        status: "error",
+        message: error.message,
+        error_code: error.code,
+        SLACK_BOT_TOKEN: token ? `✅ ${token.substring(0, 15)}...` : "❌ 없음",
+        SLACK_CHANNEL_ID: channelId,
+      });
+    }
+  });
+
   // User routes
   app.get("/api/users", async (req, res) => {
     try {
